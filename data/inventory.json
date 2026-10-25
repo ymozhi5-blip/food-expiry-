@@ -1,0 +1,41 @@
+[
+  {
+    "id": "b39f8b603f5b4d1bae62a8aad8c27543",
+    "name": "milk",
+    "category": "Dairy",
+    "purchase_date": "2026-10-25",
+    "expiry_date": "2026-10-26",
+    "quantity": "1",
+    "storage": "Room temperature",
+    "notes": "",
+    "photo": "",
+    "created_at": "2026-10-25T14:00:05",
+    "expiry_source": "user-entered"
+  },
+  {
+    "id": "08c67b94b8fa4660862262563c18bb43",
+    "name": "chicken",
+    "category": "Meat",
+    "purchase_date": "2026-10-25",
+    "expiry_date": "2026-10-26",
+    "quantity": "1",
+    "storage": "Frozen",
+    "notes": "",
+    "photo": "",
+    "created_at": "2026-10-25T14:09:31",
+    "expiry_source": "user-entered"
+  },
+  {
+    "id": "3fc692f74e6c4790a86c818e78a7c421",
+    "name": "chicken",
+    "category": "Meat",
+    "purchase_date": "2026-10-25",
+    "expiry_date": "2027-02-25",
+    "quantity": "1",
+    "storage": "Room temperature",
+    "notes": "",
+    "photo": "499baffb634b41979a231425c1d7b412.jpeg",
+    "created_at": "2026-10-25T14:11:49",
+    "expiry_source": "user-entered"
+  }
+]

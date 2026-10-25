@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FreshTrack — Smart Food Expiry Tracker</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script defer src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script defer src="{{ url_for('static', filename='app.js') }}"></script>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="{{ url_for('index') }}"><span class="logo">🌿</span> Fresh<span>Track</span></a>
+  <nav><a href="#inventory">My Items</a><a href="#recipes">Recipes</a></nav>
+</header>
+<main class="container">
+  <section class="hero">
+    <div><p class="eyebrow">SMART FOOD MANAGEMENT</p><h1>Keep your food fresh.<br><span>Waste less.</span></h1>
+    <p>Record groceries, monitor expiry dates, and plan to use food in time.</p></div>
+    <div class="hero-art" aria-hidden="true">🥬 🍎 🥛</div>
+  </section>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}<div class="messages">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+  {% endwith %}
+
+  <section class="stats">
+    <div class="stat"><span>Total items</span><strong>{{ stats.total }}</strong></div>
+    <div class="stat"><span>Expiring within 7 days</span><strong>{{ stats.soon }}</strong></div>
+    <div class="stat"><span>Past expiry date</span><strong>{{ stats.expired }}</strong></div>
+  </section>
+
+  <section class="layout">
+    <section class="panel">
+      <div class="section-title"><div><p class="eyebrow">QUICK CAPTURE</p><h2>Add food item</h2></div></div>
+      <form action="{{ url_for('add_item') }}" method="post" enctype="multipart/form-data" id="addForm">
+        <label>Product name *<input name="name" id="productName" required placeholder="e.g. Milk"></label>
+        <div class="two-col">
+          <label>Category<select name="category"><option>Fruit</option><option>Vegetable</option><option>Dairy</option><option>Meat</option><option>Bakery</option><option>Packaged</option><option>Other</option></select></label>
+          <label>Quantity<input name="quantity" placeholder="e.g. 1 litre, 2 packs" value="1"></label>
+        </div>
+        <div class="two-col">
+          <label>Purchase date *<input name="purchase_date" type="date" value="{{ today }}" required></label>
+          <label>Expiry date *<input name="expiry_date" id="expiryDate" type="date" required></label>
+        </div>
+        <label>Storage type<select name="storage"><option>Refrigerated</option><option>Frozen</option><option>Room temperature</option><option>Cool and dry place</option></select></label>
+        <label>Product photo (optional)<input type="file" name="photo" id="photoInput" accept="image/png,image/jpeg,image/webp" capture="environment"></label>
+        <div class="capture-tools">
+          <button type="button" class="button secondary" id="readLabelBtn">Read label with OCR</button>
+          <button type="button" class="button secondary" id="barcodeBtn">Scan barcode</button>
+        </div>
+        <p class="hint">OCR and barcode scanning need a compatible browser and internet access to load their libraries. Always verify extracted details manually.</p>
+        <div id="scanStatus" class="scan-status" role="status"></div>
+        <select id="cameraSelect" aria-label="Choose camera" hidden>
+  <option value="environment">Back Camera</option>
+  <option value="user">Front Camera</option>
+</select>
+
+
+
+<video id="barcodeVideo" class="scanner-video" playsinline hidden></video>
+        <button type="button" id="stopScanBtn" class="button secondary" hidden>Stop scanner</button>
+        <label>Notes (optional)<textarea name="notes" rows="2" placeholder="Brand, package details, etc."></textarea></label>
+        <button class="button primary full" type="submit">Save food item</button>
+      </form>
+    </section>
+
+    <section class="panel" id="inventory">
+      <div class="section-title"><div><p class="eyebrow">YOUR INVENTORY</p><h2>Food items</h2></div><span class="pill">{{ items|length }} items</span></div>
+      {% if items %}
+      <div class="inventory-list">
+        {% for item in items %}
+        <article class="food-card">
+          {% if item.photo %}<img class="food-photo" src="{{ url_for('static', filename='uploads/' ~ item.photo) }}" alt="Photo of {{ item.name }}">{% else %}<div class="food-photo placeholder">🥗</div>{% endif %}
+          <div class="food-info"><div class="food-heading"><h3>{{ item.name }}</h3><span class="status {{ item.status }}">{{ {'fresh':'Fresh','soon':'Expiring soon','expired':'Expired','unknown':'Unknown'}[item.status] }}</span></div>
+            <p>{{ item.category }} · Qty: {{ item.quantity }}</p>
+            <p>Expiry: <strong>{{ item.expiry_date }}</strong>{% if item.days_left is not none %} · {% if item.days_left < 0 %}{{ -item.days_left }} day(s) past expiry{% elif item.days_left == 0 %}today{% else %}{{ item.days_left }} day(s) left{% endif %}{% endif %}</p>
+            <p class="hint">Date source: user entered. Confirm dates on package; estimates are not food-safety guarantees.</p>
+            <div class="card-actions">
+              <form method="post" action="{{ url_for('feedback', item_id=item.id) }}"><select name="outcome" aria-label="Food outcome"><option value="used">Used</option><option value="discarded">Discarded</option><option value="still_have">Still have</option></select><button class="button tiny secondary" type="submit">Save feedback</button></form>
+              <form method="post" action="{{ url_for('delete_item', item_id=item.id) }}" onsubmit="return confirm('Remove this item?')"><button class="button tiny danger" type="submit">Delete</button></form>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}<div class="empty"><span>🧺</span><h3>Your inventory is empty</h3><p>Add your first food item using the form.</p></div>{% endif %}
+    </section>
+  </section>
+
+  <section class="panel alerts-panel">
+    <div class="section-title"><div><p class="eyebrow">EXPIRY WATCH</p><h2>Alerts</h2></div></div>
+    <p class="hint">These are in-app alerts calculated when the dashboard loads. Browser push notifications and scheduled background delivery are not configured in this starter yet.</p>
+    {% if alerts %}<ul class="alert-list">{% for alert in alerts %}<li class="{{ alert.level }}">{{ alert.message }}</li>{% endfor %}</ul>{% else %}<p>No expiry alerts right now.</p>{% endif %}
+  </section>
+
+  <section class="panel" id="recipes">
+    <div class="section-title"><div><p class="eyebrow">USE WHAT YOU HAVE</p><h2>Simple recipe ideas</h2></div></div>
+    {% if recipes %}<div class="recipe-grid">{% for recipe in recipes %}<article class="recipe"><h3>🍽️ {{ recipe.title }}</h3><p>{{ recipe.description }}</p><small>Matched items: {{ recipe.ingredients|join(', ') }}</small></article>{% endfor %}</div>{% else %}<p class="hint">Add ingredients such as tomato, onion, milk, banana, bread, cheese, egg, or potato to see simple matching recipe ideas.</p>{% endif %}
+  </section>
+  <p class="disclaimer">FreshTrack is an organizer, not a food-safety detector. Never rely on a predicted date alone to determine whether food is safe. Follow package instructions and local food-safety guidance.</p>
+</main>
+<footer>FreshTrack · Starter project for local development</footer>
+
+<script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+
+</body>
+</html>
